@@ -117,7 +117,7 @@ static word focusResponse() {
 }
 
 /**
- * Bubild the 404 HTTP response
+ * Build the 404 HTTP response
  */
 static word notFound() {
   bfill = ether.tcpOffset();
