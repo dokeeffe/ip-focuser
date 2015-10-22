@@ -15,7 +15,6 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 include_directories(${INDI_INCLUDE_DIR})
 include_directories(${NOVA_INCLUDE_DIR})
 
-
 ################ Roll Off ################
 set(ipfocuser_SRCS
         ${CMAKE_CURRENT_SOURCE_DIR}/ipfocuser.cpp

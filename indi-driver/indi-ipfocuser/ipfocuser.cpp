@@ -84,7 +84,7 @@ IpFocus::IpFocus()
 {
     ticks=0; //TODO: add other params to .h file and set here
 
-    SetFocuserCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_HAS_VARIABLE_SPEED);
+    SetFocuserCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE); //TODO: add FOCUSE R_HAS_VARIABLE_SPEED. the http interface supports it
 }
 
 bool IpFocus::SetupParms()
@@ -102,6 +102,7 @@ bool IpFocus::Connect()
     curl = curl_easy_init();
     if(curl) {
         curl_easy_setopt(curl, CURLOPT_URL, "http://192.168.1.203/focuser");
+        curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10L); //10 sec timeout
         res = curl_easy_perform(curl);
         /* Check for errors */ 
         if(res != CURLE_OK) {
@@ -146,7 +147,7 @@ bool IpFocus::initProperties()
     FocusRelPosN[0].step = 1000;
 
     FocusAbsPosN[0].min = 0.;
-    FocusAbsPosN[0].max = 10000.;  //TODO: Pair with firmware
+    FocusAbsPosN[0].max = 20000.;  //TODO: Pair with firmware
     FocusAbsPosN[0].value = 0;
     FocusAbsPosN[0].step = 1000;
 
@@ -225,9 +226,9 @@ bool IpFocus::ISNewSwitch (const char *dev, const char *name, ISState *states, c
     return INDI::Focuser::ISNewSwitch(dev,name,states,names,n);
 }
 
-//does not support duration for now
-//IPState IpFocus::MoveFocuser(FocusDirection dir, int speed, uint16_t duration)
-//{
+
+IPState IpFocus::MoveFocuser(FocusDirection dir, int speed, uint16_t duration)
+{
 //    double targetTicks = (speed * duration) / (FocusSpeedN[0].max * FocusTimerN[0].max);
 //    double plannedTicks=ticks;
 //    double plannedAbsPos=0;
@@ -263,9 +264,10 @@ bool IpFocus::ISNewSwitch (const char *dev, const char *name, ISState *states, c
 //    IDSetNumber(&FWHMNP, NULL);
 //    IDSetNumber(&FocusAbsPosNP, NULL);
 //
-//    return IPS_OK;
-//
-//}
+    IDLog("RELMOVE speed: %i\n", speed);
+    return IPS_OK;
+
+}
 
 IPState IpFocus::MoveAbsFocuser(uint32_t targetTicks)
 {
@@ -277,20 +279,29 @@ IPState IpFocus::MoveAbsFocuser(uint32_t targetTicks)
 
     double mid = (FocusAbsPosN[0].max - FocusAbsPosN[0].min)/2;
 
-    IDMessage(getDeviceName() , "Focuser is moving to requested position...");
+    IDMessage(getDeviceName() , "Focuser is moving to requested position");
 
     // Limit to +/- 10 from initTicks
-    ticks = initTicks + (targetTicks - mid) / 5000.0;
+    //WTF? ticks = initTicks + (targetTicks - mid) / 5000.0;
 
-    if (isDebug())
-        IDLog("Current ticks: %g\n", ticks);
+    //if (isDebug())
+    IDLog("Current ticks: %g\n", ticks);
+    IDLog("Current ticks: %i\n", targetTicks);
 
     //Now create HTTP GET to move focuser
     CURL *curl;
     CURLcode res;
     curl = curl_easy_init();
     if(curl) {
-        curl_easy_setopt(curl, CURLOPT_URL, "http://192.168.1.203/focuser??absolutePosition="+std::to_string(ticks));
+        //holy crap is it really this hard to build a string in c++
+        std::string url = "http://192.168.1.203/focuser?absolutePosition="; 
+        auto str = url + std::to_string(targetTicks); 
+        char* temp_line = new char[str.size() + 1];  // +1 char for '\0' terminator
+        strcpy(temp_line, str.c_str());
+        //end holy crap!!!!
+    
+        curl_easy_setopt(curl, CURLOPT_URL, temp_line);
+        curl_easy_setopt(curl, CURLOPT_TIMEOUT, 30L); //30sec should be enough
         res = curl_easy_perform(curl);
         /* Check for errors */
         if(res != CURLE_OK) {
