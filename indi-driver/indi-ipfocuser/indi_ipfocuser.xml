@@ -1,6 +1,6 @@
 <devGroup group="Focusers">
         <device label="IP Focuser">
-                <driver name="MaxDome II">indi_ipfocuser</driver>
+                <driver name="IPFocuser">indi_ipfocuser</driver>
                 <version>1.0</version>
                 <host>192.168.1.203</host>
         </device>

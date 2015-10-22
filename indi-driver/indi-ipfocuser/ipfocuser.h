@@ -29,6 +29,7 @@
 class IpFocus : public INDI::Focuser
 {
     protected:
+        virtual bool saveConfigItems(FILE *fp);
     private:
 
 
@@ -37,8 +38,10 @@ class IpFocus : public INDI::Focuser
 
         INumberVectorProperty SeeingNP;
         INumberVectorProperty FWHMNP;
+        ITextVectorProperty focuserEndpointTP;
         INumber SeeingN[1];
         INumber FWHMN[1];
+        IText focuserEndpointT[1];
 
         bool SetupParms();
 
@@ -58,6 +61,8 @@ class IpFocus : public INDI::Focuser
 
         virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
         virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
+        virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
+        virtual void ISGetProperties (const char *dev);
 
         virtual IPState MoveFocuser(FocusDirection dir, int speed, uint16_t duration);
         virtual IPState MoveAbsFocuser(uint32_t ticks);

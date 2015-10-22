@@ -96,17 +96,24 @@ bool IpFocus::SetupParms()
 bool IpFocus::Connect()
 {
 
+    if (focuserEndpointT[0].text == NULL)
+    {
+        DEBUG(INDI::Logger::DBG_ERROR, "Focuser HTTP API endpoint is not available. Set it in the options tab");
+        return false;   
+    }
+    
     CURL *curl;
     CURLcode res;
  
     curl = curl_easy_init();
     if(curl) {
-        curl_easy_setopt(curl, CURLOPT_URL, "http://192.168.1.203/focuser");
+        curl_easy_setopt(curl, CURLOPT_URL, focuserEndpointT[0].text);
         curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10L); //10 sec timeout
         res = curl_easy_perform(curl);
         /* Check for errors */ 
         if(res != CURLE_OK) {
-	    DEBUGF(INDI::Logger::DBG_ERROR, "Connecttion to FOCUSER failed:%s",curl_easy_strerror(res));            
+	    DEBUGF(INDI::Logger::DBG_ERROR, "Connecttion to FOCUSER failed:%s",curl_easy_strerror(res));
+            DEBUG(INDI::Logger::DBG_ERROR, "Is the HTTP API endpoint correct? Set it in the options tab. Can you ping the focuser?");
             return false;
         }
         /* always cleanup */ 
@@ -125,12 +132,16 @@ IpFocus::~IpFocus()
 
 const char * IpFocus::getDefaultName()
 {
-        return (char *)"Focuser Simulator";
+        return (char *)"IP Focuser";
 }
 
 bool IpFocus::initProperties()
 {
     INDI::Focuser::initProperties();
+    
+    IUFillText(&focuserEndpointT[0], "API_ENDPOINT", "API Endpoint", NULL);
+    IUFillTextVector(&focuserEndpointTP, focuserEndpointT, 1, getDeviceName(), "FOCUSER_API_ENDPOINT", "Focuser", OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
+
 
     IUFillNumber(&SeeingN[0],"SIM_SEEING","arcseconds","%4.2f",0,60,0,3.5);
     IUFillNumberVector(&SeeingNP,SeeingN,1,getDeviceName(),"SEEING_SETTINGS","Seeing",MAIN_CONTROL_TAB,IP_RW,60,IPS_IDLE);
@@ -153,6 +164,7 @@ bool IpFocus::initProperties()
 
     FocusAbsPosN[0].value = FocusAbsPosN[0].max / 2;    //FIXME: remove this and maybe call HTTP GET again.
 
+    addDebugControl();
     return true;
 }
 
@@ -165,12 +177,14 @@ bool IpFocus::updateProperties()
     {
         defineNumber(&SeeingNP);
         defineNumber(&FWHMNP);
+        defineText(&focuserEndpointTP);
         SetupParms();
     }
     else
     {
         deleteProperty(SeeingNP.name);
         deleteProperty(FWHMNP.name);
+        deleteProperty(focuserEndpointTP.name);
     }
 
     return true;
@@ -211,10 +225,33 @@ bool IpFocus::ISNewNumber (const char *dev, const char *name, double values[], c
         }
 
     }
+   return INDI::Focuser::ISNewNumber(dev,name,values,names,n);
+}
 
-    //  if we didn't process it, continue up the chain, let somebody else
-    //  give it a shot
-    return INDI::Focuser::ISNewNumber(dev,name,values,names,n);
+void IpFocus::ISGetProperties(const char *dev)
+{
+    INDI::Focuser::ISGetProperties(dev);
+
+    defineText(&focuserEndpointTP);
+
+    loadConfig(true, "FOCUSER_API_ENDPOINT");
+}
+
+bool IpFocus::ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n)
+{
+    if(strcmp(dev,getDeviceName())==0)
+    {
+        if(strcmp(name,"FOCUSER_API_ENDPOINT")==0)
+        {
+            IUUpdateText(&focuserEndpointTP, texts, names, n);
+            focuserEndpointTP.s = IPS_OK;
+            IDSetText(&focuserEndpointTP, NULL);
+            return true;
+        }
+
+    }
+
+     return INDI::Focuser::ISNewText(dev,name,texts,names,n);
 }
 
 /**
@@ -229,41 +266,7 @@ bool IpFocus::ISNewSwitch (const char *dev, const char *name, ISState *states, c
 
 IPState IpFocus::MoveFocuser(FocusDirection dir, int speed, uint16_t duration)
 {
-//    double targetTicks = (speed * duration) / (FocusSpeedN[0].max * FocusTimerN[0].max);
-//    double plannedTicks=ticks;
-//    double plannedAbsPos=0;
-//
-//    if (dir == FOCUS_INWARD)
-//        plannedTicks -= targetTicks;
-//    else
-//        plannedTicks += targetTicks;
-//
-//    if (isDebug())
-//        IDLog("Current ticks: %g - target Ticks: %g, plannedTicks %g\n", ticks, targetTicks, plannedTicks);
-//
-//    plannedAbsPos = (plannedTicks - initTicks) * 5000 + (FocusAbsPosN[0].max - FocusAbsPosN[0].min)/2;
-//
-//    if (plannedAbsPos < FocusAbsPosN[0].min || plannedAbsPos > FocusAbsPosN[0].max)
-//    {
-//        IDMessage(getDeviceName(), "Error, requested position is out of range.");
-//        return IPS_ALERT;
-//    }
-//
-//    ticks = plannedTicks;
-//    if (isDebug())
-//          IDLog("Current absolute position: %g, current ticks is %g\n", plannedAbsPos, ticks);
-//
-//
-//    FWHMN[0].value = 0.5625*ticks*ticks +  SeeingN[0].value;
-//    FocusAbsPosN[0].value = plannedAbsPos;
-//
-//
-//    if (FWHMN[0].value < SeeingN[0].value)
-//        FWHMN[0].value = SeeingN[0].value;
-//
-//    IDSetNumber(&FWHMNP, NULL);
-//    IDSetNumber(&FocusAbsPosNP, NULL);
-//
+    //TODO: calc and delegate to MoveAbsFocuser
     IDLog("RELMOVE speed: %i\n", speed);
     return IPS_OK;
 
@@ -284,9 +287,10 @@ IPState IpFocus::MoveAbsFocuser(uint32_t targetTicks)
     // Limit to +/- 10 from initTicks
     //WTF? ticks = initTicks + (targetTicks - mid) / 5000.0;
 
-    //if (isDebug())
-    IDLog("Current ticks: %g\n", ticks);
-    IDLog("Current ticks: %i\n", targetTicks);
+    if (isDebug()) {
+        IDLog("Current ticks: %g\n", ticks);
+        IDLog("Current ticks: %i\n", targetTicks);
+    }
 
     //Now create HTTP GET to move focuser
     CURL *curl;
@@ -294,13 +298,13 @@ IPState IpFocus::MoveAbsFocuser(uint32_t targetTicks)
     curl = curl_easy_init();
     if(curl) {
         //holy crap is it really this hard to build a string in c++
-        std::string url = "http://192.168.1.203/focuser?absolutePosition="; 
-        auto str = url + std::to_string(targetTicks); 
-        char* temp_line = new char[str.size() + 1];  // +1 char for '\0' terminator
-        strcpy(temp_line, str.c_str());
+        std::string queryString = "?absolutePosition="; 
+        auto str = focuserEndpointT[0].text + queryString + std::to_string(targetTicks); 
+        char* getRequestUrl = new char[str.size() + 1];  // +1 char for '\0' terminator
+        strcpy(getRequestUrl, str.c_str());
         //end holy crap!!!!
     
-        curl_easy_setopt(curl, CURLOPT_URL, temp_line);
+        curl_easy_setopt(curl, CURLOPT_URL, getRequestUrl);
         curl_easy_setopt(curl, CURLOPT_TIMEOUT, 30L); //30sec should be enough
         res = curl_easy_perform(curl);
         /* Check for errors */
@@ -336,5 +340,14 @@ IPState IpFocus::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
     IDSetNumber(&FocusAbsPosNP, NULL);
 
     return MoveAbsFocuser(targetTicks);
+}
+
+bool IpFocus::saveConfigItems(FILE *fp)
+{
+    INDI::Focuser::saveConfigItems(fp);
+
+    IUSaveConfigText(fp, &focuserEndpointTP);
+
+    return true;
 }
 
