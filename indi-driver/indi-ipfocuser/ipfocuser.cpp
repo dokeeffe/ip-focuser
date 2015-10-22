@@ -1,21 +1,10 @@
 /*******************************************************************************
-  Copyright(c) 2012 Jasem Mutlaq. All rights reserved.
+  INDI driver for a motorized telescope focuser which uses HTTP communication.
+  See arduino-firmware for details of the device firmware that this INDI driver is for.
 
- This library is free software; you can redistribute it and/or
- modify it under the terms of the GNU Library General Public
- License version 2 as published by the Free Software Foundation.
- .
- This library is distributed in the hope that it will be useful,
- but WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- Library General Public License for more details.
- .
- You should have received a copy of the GNU Library General Public License
- along with this library; see the file COPYING.LIB.  If not, write to
- the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
- Boston, MA 02110-1301, USA.
 *******************************************************************************/
 #include "ipfocuser.h"
+#include "gason.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -28,7 +17,7 @@
 #include <curl/curl.h>
 
 // We declare an auto pointer to focusSim.
-std::auto_ptr<FocusSim> focusSim(0);
+std::auto_ptr<IpFocus> focusSim(0);
 
 #define SIM_SEEING  0
 #define SIM_FWHM    1
@@ -45,7 +34,7 @@ void ISInit()
        return;
 
     isInit = 1;
-    if(focusSim.get() == 0) focusSim.reset(new FocusSim());
+    if(focusSim.get() == 0) focusSim.reset(new IpFocus());
 
 }
 
@@ -91,20 +80,20 @@ void ISSnoopDevice (XMLEle *root)
     focusSim->ISSnoopDevice(root);
 }
 
-FocusSim::FocusSim()
+IpFocus::IpFocus()
 {
-    ticks=0;
+    ticks=0; //TODO: add other params to .h file and set here
 
-    SetFocuserCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT | FOCUSER_HAS_VARIABLE_SPEED);
+    SetFocuserCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_HAS_VARIABLE_SPEED);
 }
 
-bool FocusSim::SetupParms()
+bool IpFocus::SetupParms()
 {
     IDSetNumber(&FWHMNP, NULL);
     return true;
 }
 
-bool FocusSim::Connect()
+bool IpFocus::Connect()
 {
 
     CURL *curl;
@@ -121,23 +110,24 @@ bool FocusSim::Connect()
         }
         /* always cleanup */ 
         curl_easy_cleanup(curl);
+        //TODO: parse json and get current abs position then set FocusAbsPosN[0].value = absPositionFromDevice; ... Or do it in initProperties below.
     }
 
     SetTimer(1000);     //  start the timer
     return true;
 }
 
-FocusSim::~FocusSim()
+IpFocus::~IpFocus()
 {
     //dtor
 }
 
-const char * FocusSim::getDefaultName()
+const char * IpFocus::getDefaultName()
 {
         return (char *)"Focuser Simulator";
 }
 
-bool FocusSim::initProperties()
+bool IpFocus::initProperties()
 {
     INDI::Focuser::initProperties();
 
@@ -148,13 +138,24 @@ bool FocusSim::initProperties()
     IUFillNumberVector(&FWHMNP,FWHMN,1,getDeviceName(), "FWHM","FWHM",MAIN_CONTROL_TAB,IP_RO,60,IPS_IDLE);
 
     ticks = initTicks = sqrt(FWHMN[0].value - SeeingN[0].value) / 0.75;
-    
-    FocusAbsPosN[0].value = FocusAbsPosN[0].max / 2;    
+
+    /* Relative and absolute movement */
+    FocusRelPosN[0].min = 0.;
+    FocusRelPosN[0].max = 5000.;
+    FocusRelPosN[0].value = 0;
+    FocusRelPosN[0].step = 1000;
+
+    FocusAbsPosN[0].min = 0.;
+    FocusAbsPosN[0].max = 10000.;  //TODO: Pair with firmware
+    FocusAbsPosN[0].value = 0;
+    FocusAbsPosN[0].step = 1000;
+
+    FocusAbsPosN[0].value = FocusAbsPosN[0].max / 2;    //FIXME: remove this and maybe call HTTP GET again.
 
     return true;
 }
 
-bool FocusSim::updateProperties()
+bool IpFocus::updateProperties()
 {
 
     INDI::Focuser::updateProperties();
@@ -175,13 +176,13 @@ bool FocusSim::updateProperties()
 }
 
 
-bool FocusSim::Disconnect()
+bool IpFocus::Disconnect()
 {
     return true;
 }
 
 
-void FocusSim::TimerHit()
+void IpFocus::TimerHit()
 {
     int nexttimer=1000;
 
@@ -191,7 +192,10 @@ void FocusSim::TimerHit()
     return;
 }
 
-bool FocusSim::ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n)
+/**
+ * Chain of command for setting numeric values
+**/
+bool IpFocus::ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n)
 {
     if(strcmp(dev,getDeviceName())==0)
     {
@@ -212,56 +216,58 @@ bool FocusSim::ISNewNumber (const char *dev, const char *name, double values[], 
     return INDI::Focuser::ISNewNumber(dev,name,values,names,n);
 }
 
-
-bool FocusSim::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
+/**
+ * Chain of command for setting switch values
+**/
+bool IpFocus::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-
-    //  Nobody has claimed this, so, ignore it
+    //  Nobody has claimed this, so, ignore it, pass it up the chain
     return INDI::Focuser::ISNewSwitch(dev,name,states,names,n);
 }
 
-IPState FocusSim::MoveFocuser(FocusDirection dir, int speed, uint16_t duration)
-{
-    double targetTicks = (speed * duration) / (FocusSpeedN[0].max * FocusTimerN[0].max);
-    double plannedTicks=ticks;
-    double plannedAbsPos=0;
+//does not support duration for now
+//IPState IpFocus::MoveFocuser(FocusDirection dir, int speed, uint16_t duration)
+//{
+//    double targetTicks = (speed * duration) / (FocusSpeedN[0].max * FocusTimerN[0].max);
+//    double plannedTicks=ticks;
+//    double plannedAbsPos=0;
+//
+//    if (dir == FOCUS_INWARD)
+//        plannedTicks -= targetTicks;
+//    else
+//        plannedTicks += targetTicks;
+//
+//    if (isDebug())
+//        IDLog("Current ticks: %g - target Ticks: %g, plannedTicks %g\n", ticks, targetTicks, plannedTicks);
+//
+//    plannedAbsPos = (plannedTicks - initTicks) * 5000 + (FocusAbsPosN[0].max - FocusAbsPosN[0].min)/2;
+//
+//    if (plannedAbsPos < FocusAbsPosN[0].min || plannedAbsPos > FocusAbsPosN[0].max)
+//    {
+//        IDMessage(getDeviceName(), "Error, requested position is out of range.");
+//        return IPS_ALERT;
+//    }
+//
+//    ticks = plannedTicks;
+//    if (isDebug())
+//          IDLog("Current absolute position: %g, current ticks is %g\n", plannedAbsPos, ticks);
+//
+//
+//    FWHMN[0].value = 0.5625*ticks*ticks +  SeeingN[0].value;
+//    FocusAbsPosN[0].value = plannedAbsPos;
+//
+//
+//    if (FWHMN[0].value < SeeingN[0].value)
+//        FWHMN[0].value = SeeingN[0].value;
+//
+//    IDSetNumber(&FWHMNP, NULL);
+//    IDSetNumber(&FocusAbsPosNP, NULL);
+//
+//    return IPS_OK;
+//
+//}
 
-    if (dir == FOCUS_INWARD)
-        plannedTicks -= targetTicks;
-    else
-        plannedTicks += targetTicks;
-
-    if (isDebug())
-        IDLog("Current ticks: %g - target Ticks: %g, plannedTicks %g\n", ticks, targetTicks, plannedTicks);
-
-    plannedAbsPos = (plannedTicks - initTicks) * 5000 + (FocusAbsPosN[0].max - FocusAbsPosN[0].min)/2;
-
-    if (plannedAbsPos < FocusAbsPosN[0].min || plannedAbsPos > FocusAbsPosN[0].max)
-    {
-        IDMessage(getDeviceName(), "Error, requested position is out of range.");
-        return IPS_ALERT;
-    }
-
-    ticks = plannedTicks;
-    if (isDebug())
-          IDLog("Current absolute position: %g, current ticks is %g\n", plannedAbsPos, ticks);
-
-
-    FWHMN[0].value = 0.5625*ticks*ticks +  SeeingN[0].value;
-    FocusAbsPosN[0].value = plannedAbsPos;
-
-
-    if (FWHMN[0].value < SeeingN[0].value)
-        FWHMN[0].value = SeeingN[0].value;
-
-    IDSetNumber(&FWHMNP, NULL);
-    IDSetNumber(&FocusAbsPosNP, NULL);
-
-    return IPS_OK;
-
-}
-
-IPState FocusSim::MoveAbsFocuser(uint32_t targetTicks)
+IPState IpFocus::MoveAbsFocuser(uint32_t targetTicks)
 {
     if (targetTicks < FocusAbsPosN[0].min || targetTicks > FocusAbsPosN[0].max)
     {
@@ -279,11 +285,26 @@ IPState FocusSim::MoveAbsFocuser(uint32_t targetTicks)
     if (isDebug())
         IDLog("Current ticks: %g\n", ticks);
 
-    // simulate delay in motion as the focuser moves to the new position
+    //Now create HTTP GET to move focuser
+    CURL *curl;
+    CURLcode res;
+    curl = curl_easy_init();
+    if(curl) {
+        curl_easy_setopt(curl, CURLOPT_URL, "http://192.168.1.203/focuser??absolutePosition="+std::to_string(ticks));
+        res = curl_easy_perform(curl);
+        /* Check for errors */
+        if(res != CURLE_OK) {
+            DEBUGF(INDI::Logger::DBG_ERROR, "COMMS to focuser failed.:%s",curl_easy_strerror(res));
+            IDMessage(getDeviceName(), "Error. Could not communicate with focuser");
+            return IPS_ALERT;
+        }
+        curl_easy_cleanup(curl);
+    }
 
-    usleep( abs(targetTicks - FocusAbsPosN[0].value) * FOCUS_MOTION_DELAY);
 
-    FocusAbsPosN[0].value = targetTicks;
+
+
+    FocusAbsPosN[0].value = targetTicks; //TODO: Parse the json and grab the real value returned from the arduino device
 
     FWHMN[0].value = 0.5625*ticks*ticks +  SeeingN[0].value;
 
@@ -296,7 +317,7 @@ IPState FocusSim::MoveAbsFocuser(uint32_t targetTicks)
 
 }
 
-IPState FocusSim::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
+IPState IpFocus::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 {
     uint32_t targetTicks = FocusAbsPosN[0].value + (ticks * (dir == FOCUS_INWARD ? -1 : 1));
 

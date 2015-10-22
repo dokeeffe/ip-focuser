@@ -16,8 +16,8 @@
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
 
-#ifndef FOCUSSIM_H
-#define FOCUSSIM_H
+#ifndef IPFOCUS_H
+#define IPFOCUS_H
 
 #include "indifocuser.h"
 
@@ -26,7 +26,7 @@
 #include <sys/time.h>
 
 
-class FocusSim : public INDI::Focuser
+class IpFocus : public INDI::Focuser
 {
     protected:
     private:
@@ -43,8 +43,8 @@ class FocusSim : public INDI::Focuser
         bool SetupParms();
 
     public:
-        FocusSim();
-        virtual ~FocusSim();
+        IpFocus();
+        virtual ~IpFocus();
 
         const char *getDefaultName();
 
