@@ -1,7 +1,7 @@
 /**
- * Arduino firmware for a motorised telescope focuser which provides an HTTP interface. 
+ * Arduino firmware for a motorised telescope focuser which provides an HTTP interface.
  * HTTP requests to this device are blocking and will not respond until motor movement is complete so take care with your client side timeouts.
- * 
+ *
  * Based on the ethercard library by Jean-Claude Wippler (https://github.com/jcw/ethercard) You will need to install this in your arduino IDE to flash this firmware. See instrunctions in the ethercard github project page.
  *
  * PARTS:
@@ -48,20 +48,21 @@
 #define BUFFERSIZE 350
 
 //HTTP responses
-const char FOCUS_RESPONSE[] PROGMEM = "HTTP/1.0 200 OK\r\nContent-Type: application/json\r\nPragma: no-cache\r\n\r\n{\"uptime\":\"$D$D:$D$D:$D$D\",\"speed\":$D,\"temperature\":null,\"temperatureCompensationOn\":false,\"backlashSteps\":$D,\"absolutePosition\":$D}";
+const char FOCUS_RESPONSE[] PROGMEM = "HTTP/1.0 200 OK\r\nContent-Type: application/json\r\nPragma: no-cache\r\n\r\n{\"uptime\":\"$D$D:$D$D:$D$D\",\"speed\":$D,\"temperature\":null,\"temperatureCompensationOn\":false,\"backlashSteps\":$D,\"absolutePosition\":$D,\"maxPosition\":$D,\"minPosition\":$D,\"gearBoxMultiplier\":$D}";
 const char BADREQUEST_RESPONSE[] PROGMEM = "HTTP/1.0 400 Bad Request";
 const char NOTFOUND_RESPONSE[] PROGMEM = "HTTP/1.0 404 Not Found";
 
 //Focuser defaults and constants
 //The default starting position when powered on.
-const int DEFAULT_ABS_POSN = 30000;
-//Backlash compensation steps.
-const int DEFAULT_BACKLASHSTEPS = 100;
-//Max speed of the stepper. Depends on the motor.
+const int DEFAULT_ABS_POSN = 10000;
+const int MAX_APS_POSN = 20000;
+const int MIN_APS_POSN = 0;
 const int MAX_SPEED = 280;
 const int STEPS_PER_REVOLUTION = 195; //steps per rev of the motor. One I used is,,,wierd.
 const int GEARBOX_MULTIPLIER = 10; //if the stepper is attached to a gearbox. In my case it is. All steps (backlash and movements) will be multiplied by this.
 
+//Backlash compensation steps.
+const int DEFAULT_BACKLASHSTEPS = 100;
 //ALWAYS_APPROACH_CCW_BACKLASH_COMPENSATION is useful when attaching to SCT mirror shift focuser knobs.
 //The final focus turn should always be CCW on most SCTs to avoid mirror movement during long exposures. This strategy also reduces image shift when using auto focus software.
 //This setting works in conjunction with backlash steps. If CW motion, then it will go beyond the requested position then back CCW to the requested position.
@@ -70,10 +71,9 @@ const int GEARBOX_MULTIPLIER = 10; //if the stepper is attached to a gearbox. In
 const boolean ALWAYS_APPROACH_CCW_BACKLASH_COMPENSATION = true;
 
 
-
 // ethernet interface mac address, must be unique on the LAN
 static byte mymac[] = { 0x74, 0x69, 0x69, 0x2D, 0x30, 0x31 };
-static byte myip[] = { 192, 168, 1, 203 }; //STATIC IP address
+static byte myip[] = { 192, 168, 1, 203 }; //STATIC IP address. You may need to change this for your network setup. 
 
 //ethernet buffer config
 byte Ethernet::buffer[BUFFERSIZE];
@@ -112,7 +112,7 @@ static word focusResponse() {
   byte s = t % 60;
   bfill = ether.tcpOffset();
   bfill.emit_p(FOCUS_RESPONSE,
-               h / 10, h % 10, m / 10, m % 10, s / 10, s % 10, currentSpeed, backlashSteps, currentPosition);
+               h / 10, h % 10, m / 10, m % 10, s / 10, s % 10, currentSpeed, backlashSteps, currentPosition, MAX_APS_POSN, MIN_APS_POSN, GEARBOX_MULTIPLIER);
   return bfill.position();
 }
 
@@ -191,10 +191,13 @@ static void interpretCommandFromQueryString (const char* data) {
  */
 static void moveMotor(int steps) {
   String debugMessage = "moving: ";
+  Serial.println(debugMessage + (steps * GEARBOX_MULTIPLIER));
+  for (int i = 0; i < GEARBOX_MULTIPLIER; i++) {
+    //move the moter steps * GEARBOX_MULTIPLIER times. We cannot just * the 2 int values as sometimes they are too big and results in +ive int becoming -ve
+    myStepper.step(steps);
+  }
+  //now apply backlash strategy
   if (ALWAYS_APPROACH_CCW_BACKLASH_COMPENSATION) {
-    //always finish CCW backlash compensation mode
-    Serial.println(debugMessage + (steps * GEARBOX_MULTIPLIER));
-    myStepper.step(steps * GEARBOX_MULTIPLIER);
     if (steps > 0) {
       Serial.println("Going CW then back CCW by backlash ammount");
       //CW motion request so we need to go further than requested then back
@@ -204,7 +207,7 @@ static void moveMotor(int steps) {
       myStepper.setSpeed(currentSpeed);
     }
   } else {
-    //standard backlash compensation mode
+    //standard backlash compensation mode, use the backlash steps configured
     if (!backlashSteps > 0 && (steps > 0 && previousDirection < 0 || steps < 0 && previousDirection > 0)) {
       //backlash compensation required due to direction change. Go as fast as possible to compensate for backlash
       Serial.println("Backlash compensating");
@@ -216,9 +219,8 @@ static void moveMotor(int steps) {
       }
       myStepper.setSpeed(currentSpeed);
     }
-    Serial.println(debugMessage + (steps * GEARBOX_MULTIPLIER));
-    myStepper.step(steps*GEARBOX_MULTIPLIER);
   }
+  //remember this direction for future movements.
   if (steps < 0) {
     previousDirection = -1;
   } else {
