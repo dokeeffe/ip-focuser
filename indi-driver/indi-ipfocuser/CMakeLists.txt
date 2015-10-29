@@ -8,16 +8,15 @@ set (VERSION_MAJOR 0)
 set (VERSION_MINOR 2)
  
 find_package(INDI REQUIRED)
-find_package(Nova REQUIRED)
 
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 include_directories(${INDI_INCLUDE_DIR})
-include_directories(${NOVA_INCLUDE_DIR})
 
 ################ Roll Off ################
 set(ipfocuser_SRCS
         ${CMAKE_CURRENT_SOURCE_DIR}/ipfocuser.cpp
+       ${CMAKE_CURRENT_SOURCE_DIR}/gason.cpp
    )
 
 add_executable(indi_ipfocuser ${ipfocuser_SRCS})
