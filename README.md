@@ -12,6 +12,8 @@ The focuser hardware is based on the following parts
 Device HTTP API
 ---------------
 
+### Getting state
+
 | Task | Method | Path | 
 | ------------- | ------------- | ------------- |
 | Get the state of the focuser | GET | http://192.168.1.203/focuser | 
@@ -33,9 +35,13 @@ Device HTTP API
     "gearBoxMultiplier": 10
 }
 ```
+### Motion
+
 | Task | Method | Path | 
 | ------------- | ------------- | ------------- |
 | Move the focuser to an absolute position | GET | http://192.168.1.203/focuser?absolutePosition=8000 | 
+
+NOTE: This call will block until motor motion completes.
 
 **Response code** 200
 
@@ -45,6 +51,31 @@ Device HTTP API
 {
     "uptime": "00:01:46",
     "speed": 112,
+    "temperature": null,
+    "temperatureCompensationOn": false,
+    "backlashSteps": 200,
+    "absolutePosition": 8000,
+    "maxPosition": 20000,
+    "minPosition": 0,
+    "gearBoxMultiplier": 10
+}
+```
+### Configuring speed and backlash
+
+| Task | Method | Path | 
+| ------------- | ------------- | ------------- |
+| Configure stepper speed | GET | http://192.168.1.203/focuser?speed=250 | 
+
+This call will result in no motor motion. It will set the speed for future motion requests.
+
+**Response code** 200
+
+**Response body**
+
+```javascript
+{
+    "uptime": "00:01:52",
+    "speed": 250,
     "temperature": null,
     "temperatureCompensationOn": false,
     "backlashSteps": 200,
