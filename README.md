@@ -12,12 +12,8 @@ The focuser hardware is based on the following parts
 Device HTTP API
 ---------------
 
-### Get the state of the focuser
-**Method** GET 
-
-**Path** 'http://192.168.1.203/focuser'
-
-**Response code** 200
+| Task | Method | Path | 
+| Get the state of the focuser | GET | http://192.168.1.203/focuser | 
 
 **Response body**
 
