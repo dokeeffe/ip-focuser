@@ -16,6 +16,8 @@ Device HTTP API
 | ------------- | ------------- | ------------- |
 | Get the state of the focuser | GET | http://192.168.1.203/focuser | 
 
+**Response Code** 200
+
 **Response body**
 
 ```javascript
@@ -31,13 +33,9 @@ Device HTTP API
     "gearBoxMultiplier": 10
 }
 ```
-
-### Move the focuser to an absolute position
-This request will block until motor motion is complete. Take care with timeouts if you are writing a new client.
-
-**Method** GET 
-
-**Path** 'http://192.168.1.203/focuser?absolutePosition=8000'
+| Task | Method | Path | 
+| ------------- | ------------- | ------------- |
+| Move the focuser to an absolute position | GET | http://192.168.1.203/focuser?absolutePosition=8000 | 
 
 **Response code** 200
 
