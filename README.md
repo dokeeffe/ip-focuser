@@ -11,7 +11,8 @@ The focuser hardware is based on the following parts
 
 Example HTTP interface
 curl 'http://192.168.1.203/focuser'
-'''
+
+```javascript
 {
     "uptime": "00:01:23",
     "speed": 112,
@@ -23,4 +24,4 @@ curl 'http://192.168.1.203/focuser'
     "minPosition": 0,
     "gearBoxMultiplier": 10
 }
-'''
+```
