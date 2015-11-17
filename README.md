@@ -13,6 +13,7 @@ Device HTTP API
 ---------------
 
 | Task | Method | Path | 
+| ------------- | ------------- | ------------- |
 | Get the state of the focuser | GET | http://192.168.1.203/focuser | 
 
 **Response body**
