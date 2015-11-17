@@ -37,6 +37,7 @@ Device HTTP API
 
 ### Move the focuser to an absolute position
 This request will block until motor motion is complete. Take care with timeouts if you are writing a new client.
+
 **Method** GET 
 
 **Path** 'http://192.168.1.203/focuser?absolutePosition=8000'
