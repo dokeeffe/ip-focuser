@@ -15,10 +15,13 @@ Device HTTP API
 ### Get the state of the focuser
 
 **Method** GET 
+
 **Path** 'http://192.168.1.203/focuser'*
 
 **Response code** 200
+
 **Response body**
+
 ```javascript
 {
     "uptime": "00:01:23",
