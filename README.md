@@ -34,3 +34,27 @@ Device HTTP API
     "gearBoxMultiplier": 10
 }
 ```
+
+### Move the focuser to an absolute position
+This request will block until motor motion is complete. Take care with timeouts if you are writing a new client.
+**Method** GET 
+
+**Path** 'http://192.168.1.203/focuser?absolutePosition=8000'
+
+**Response code** 200
+
+**Response body**
+
+```javascript
+{
+    "uptime": "00:01:46",
+    "speed": 112,
+    "temperature": null,
+    "temperatureCompensationOn": false,
+    "backlashSteps": 200,
+    "absolutePosition": 8000,
+    "maxPosition": 20000,
+    "minPosition": 0,
+    "gearBoxMultiplier": 10
+}
+```
