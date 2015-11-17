@@ -9,10 +9,16 @@ The focuser hardware is based on the following parts
  3. 1 x TB6560 3A Single-Axis Controller Stepper Motor Driver(http://www.dx.com/p/tb6560-3a-single-axis-controller-stepper-motor-driver-board-green-black-red-217142#.ViKE8hCrRE4)
  4. 1 x Old uniplar stepper motor that I found in the shed.
 
-Example HTTP requests
+Device HTTP API
+---------------
 
-*GET 'http://192.168.1.203/focuser'*
+### Get the state of the focuser
 
+**Method** GET 
+**Path** 'http://192.168.1.203/focuser'*
+
+**Response code** 200
+**Response body**
 ```javascript
 {
     "uptime": "00:01:23",
