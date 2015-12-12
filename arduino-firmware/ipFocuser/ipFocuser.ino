@@ -198,7 +198,7 @@ static void moveMotor(int steps) {
   }
   //now apply backlash strategy
   if (ALWAYS_APPROACH_CCW_BACKLASH_COMPENSATION) {
-    if (steps > 0) {
+    if (steps < 0) {
       Serial.println("Going CW then back CCW by backlash ammount");
       //CW motion request so we need to go further than requested then back
       myStepper.setSpeed(MAX_SPEED);
