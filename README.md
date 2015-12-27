@@ -1,6 +1,7 @@
 # ip-focuser
 
-ip-focuser is an arduino based focuser for an astronomical telescope. Communication is via an HTTP json API. Also included in this project is an Indi driver to allow it to be used with any Indi client. When used with the Ekos Indi client, reliable auto focus can be achieved, limited only by local seeing conditions. for more information on Ekos and Indi see here http://indilib.org/about/ekos/focus-module.html.
+ip-focuser is an arduino based focuser for an astronomical telescope. Communication is via an HTTP json API. Also included in this project is an Indi driver to allow it to be used with any Indi client. Feaatures include backlash compensation and an always approach counter-clockwise motion strategy to reduce the effects of mirror-shift with SCT telescopes. 
+When used with the Ekos Indi client, reliable auto focus can be achieved, limited only by local seeing conditions. for more information on Ekos and Indi see here http://indilib.org/about/ekos/focus-module.html.
 
 Currently the system is providing automatic focus for [Ballyhoura Observatory](https://ballyhouraobservatory.wordpress.com)
 
