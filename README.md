@@ -17,6 +17,8 @@ The focuser hardware is based on the following parts
  3. 1 x TB6560 3A Single-Axis Controller Stepper Motor Driver(http://www.dx.com/p/tb6560-3a-single-axis-controller-stepper-motor-driver-board-green-black-red-217142#.ViKE8hCrRE4)
  4. 1 x Old uniplar stepper motor that I found in the shed.
 
+See the source documentation of the arduio firmware for wiring details.
+
 Device HTTP API
 ---------------
 
