@@ -7,6 +7,8 @@ Currently the system is providing automatic focus for [Ballyhoura Observatory](h
 
 The focuser hardware is based on the following parts
 
+![project box](https://lh3.googleusercontent.com/PQgTi8w4_goE5-nxBddru47WQ3KApc7sFKC78McjZ0-uUn59y5c-TXPJdS8xZElrxruuvaq6KzDhvmLcnSfCB3XiI2w9fkNNCNBvfvJHupoc1J_zTzjyZy5Lj0LYfH7miZq2Tx5nVLH4kFvmRnRBKBxAqjC-vfrgIXZj9KVVNSGGKzjit_0fH-yki_Pj4fKtsoC52QQ0lFcP5sxODY3-NYRL4qIpxnXUbHHpLO5DqoxpN3Y7v0ClHqNazxVeXjHexu746JgnAU2ZmcHZSDw1Nsca8GjttUsSU2wAJajzzXhbFzNUsxETRb3lzmPygccKpXYZDOS0k5JUJJm3FHPpyaqBIqWsOzRxXs2opKJNqoV2KznjyvBK1M1B6jAlpemVIg9_t0kYf-IYVuZaWB2RO-jrWNOOdd-Bdy9VODA_5gxRZjMuNettuhEACsQ4MiFEoYQZzO5LaYchTcz7SkGUaEjT_Hbyq3jPA3zjmcracjkbMkPdYitQxBotX1wH6kWNwJEZQ41BMnNRiS78XMKSnLu1adZ8SrYi2AIMSpkcRuOhfhOZPMStWvAnzwpBzGG-sISx=w640-h480-no)
+
  1. 1 x Arduino nano (http://www.dx.com/p/arduino-nano-v3-0-81877#.ViKE2RCrRE4)
  2. 1 x PCB ENC28J60 Ethernet Module HanRun HR911105A (14/10) (http://www.dx.com/p/pcb-arduino-enc28j60-ethernet-module-blue-140971#.ViKE_xCrRE4)
  3. 1 x TB6560 3A Single-Axis Controller Stepper Motor Driver(http://www.dx.com/p/tb6560-3a-single-axis-controller-stepper-motor-driver-board-green-black-red-217142#.ViKE8hCrRE4)
