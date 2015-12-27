@@ -5,6 +5,9 @@ When used with the Ekos Indi client, reliable auto focus can be achieved, limite
 
 Currently the system is providing automatic focus for [Ballyhoura Observatory](https://ballyhouraobservatory.wordpress.com)
 
+Device Hardware
+---------------
+
 The focuser hardware is based on the following parts
 
 ![project box](https://lh3.googleusercontent.com/PQgTi8w4_goE5-nxBddru47WQ3KApc7sFKC78McjZ0-uUn59y5c-TXPJdS8xZElrxruuvaq6KzDhvmLcnSfCB3XiI2w9fkNNCNBvfvJHupoc1J_zTzjyZy5Lj0LYfH7miZq2Tx5nVLH4kFvmRnRBKBxAqjC-vfrgIXZj9KVVNSGGKzjit_0fH-yki_Pj4fKtsoC52QQ0lFcP5sxODY3-NYRL4qIpxnXUbHHpLO5DqoxpN3Y7v0ClHqNazxVeXjHexu746JgnAU2ZmcHZSDw1Nsca8GjttUsSU2wAJajzzXhbFzNUsxETRb3lzmPygccKpXYZDOS0k5JUJJm3FHPpyaqBIqWsOzRxXs2opKJNqoV2KznjyvBK1M1B6jAlpemVIg9_t0kYf-IYVuZaWB2RO-jrWNOOdd-Bdy9VODA_5gxRZjMuNettuhEACsQ4MiFEoYQZzO5LaYchTcz7SkGUaEjT_Hbyq3jPA3zjmcracjkbMkPdYitQxBotX1wH6kWNwJEZQ41BMnNRiS78XMKSnLu1adZ8SrYi2AIMSpkcRuOhfhOZPMStWvAnzwpBzGG-sISx=w640-h480-no)
