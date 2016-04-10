@@ -24,12 +24,12 @@ class IpFocus : public INDI::Focuser
 
         INumberVectorProperty SeeingNP;
         INumberVectorProperty FWHMNP;
-        INumberVectorProperty BacklashStepsP;
+        ITextVectorProperty BacklashStepsP;
         ITextVectorProperty FocuserEndpointTP;
         ITextVectorProperty AlwaysApproachDirectionP;
         INumber SeeingN[1];
         INumber FWHMN[1];
-        INumber BacklashSteps[1];
+        IText BacklashSteps[1];
         IText FocuserEndpointT[1];
         IText AlwaysApproachDirection[1];
 

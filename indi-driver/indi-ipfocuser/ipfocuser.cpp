@@ -185,8 +185,8 @@ bool IpFocus::initProperties()
     IUFillText(&AlwaysApproachDirection[0], "ALWAYS_APPROACH_DIR", "Always approach CW/CCW/blank", "CCW");
     IUFillTextVector(&AlwaysApproachDirectionP, AlwaysApproachDirection, 1, getDeviceName(), "BACKLASH_APPROACH_SETTINGS", "Backlash Direction", OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
 
-    IUFillNumber(&BacklashSteps[0],"BACKLASH_STEPS","Backlash steps","%4.0f",0,60,0,100);
-    IUFillNumberVector(&BacklashStepsP,BacklashSteps,1,getDeviceName(),"BACKLASH_STEPS_SETTINGS","Backlash Steps",OPTIONS_TAB,IP_RW,60,IPS_IDLE);
+    IUFillText(&BacklashSteps[0],"BACKLASH_STEPS","Backlash steps","100");
+    IUFillTextVector(&BacklashStepsP,BacklashSteps,1,getDeviceName(),"BACKLASH_STEPS_SETTINGS","Backlash Steps",OPTIONS_TAB,IP_RW,60,IPS_IDLE);
 
 
     IUFillNumber(&SeeingN[0],"SIM_SEEING","arcseconds","%4.2f",0,60,0,3.5);
@@ -218,7 +218,7 @@ bool IpFocus::updateProperties()
     {
         defineNumber(&SeeingNP);
         defineNumber(&FWHMNP);
-        defineNumber(&BacklashStepsP);
+        defineText(&BacklashStepsP);
         defineText(&FocuserEndpointTP);
         defineText(&AlwaysApproachDirectionP);
         SetupParms();
@@ -269,7 +269,7 @@ void IpFocus::ISGetProperties(const char *dev)
 
     defineText(&FocuserEndpointTP);
     defineText(&AlwaysApproachDirectionP);
-    defineNumber(&BacklashStepsP);
+    defineText(&BacklashStepsP);
 
     loadConfig(true, "FOCUSER_API_ENDPOINT");
     loadConfig(true, "BACKLASH_APPROACH_SETTINGS");
@@ -292,6 +292,13 @@ bool IpFocus::ISNewText (const char *dev, const char *name, char *texts[], char 
             IUUpdateText(&AlwaysApproachDirectionP, texts, names, n);
             AlwaysApproachDirectionP.s = IPS_OK;
             IDSetText(&AlwaysApproachDirectionP, NULL);
+            return true;
+        }
+        if(strcmp(name,"BACKLASH_STEPS_SETTINGS")==0)
+        {
+            IUUpdateText(&BacklashStepsP, texts, names, n);
+            BacklashStepsP.s = IPS_OK;
+            IDSetText(&BacklashStepsP, NULL);
             return true;
         }
 
@@ -347,7 +354,7 @@ IPState IpFocus::MoveAbsFocuser(uint32_t targetTicks)
         std::string queryStringPosn = "?absolutePosition=";
         std::string queryStringBacklash = "&amp;backlashSteps=";
         std::string queryStringApproachDir = "&amp;alwaysApproach=";
-        auto str = FocuserEndpointT[0].text + queryStringPosn + std::to_string(targetTicks) + queryStringBacklash + std::to_string(BacklashSteps[0].value) + queryStringApproachDir + AlwaysApproachDirection[0].text;
+        auto str = FocuserEndpointT[0].text + queryStringPosn + std::to_string(targetTicks) + queryStringBacklash + BacklashSteps[0].text + queryStringApproachDir + AlwaysApproachDirection[0].text;
         char* getRequestUrl = new char[str.size() + 1];  // +1 char for '\0' terminator
         strcpy(getRequestUrl, str.c_str());
         //end holy crap!!!!
