@@ -185,7 +185,7 @@ bool IpFocus::initProperties()
     IUFillText(&AlwaysApproachDirection[0], "ALWAYS_APPROACH_DIR", "Always approach CW/CCW/blank", "CCW");
     IUFillTextVector(&AlwaysApproachDirectionP, AlwaysApproachDirection, 1, getDeviceName(), "BACKLASH_APPROACH_SETTINGS", "Backlash Direction", OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
 
-    IUFillText(&BacklashSteps[0],"BACKLASH_STEPS","Backlash steps","100");
+    IUFillText(&BacklashSteps[0],"BACKLASH_STEPS","Backlash steps","300");
     IUFillTextVector(&BacklashStepsP,BacklashSteps,1,getDeviceName(),"BACKLASH_STEPS_SETTINGS","Backlash Steps",OPTIONS_TAB,IP_RW,60,IPS_IDLE);
 
 
