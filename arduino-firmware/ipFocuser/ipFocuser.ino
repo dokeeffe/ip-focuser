@@ -46,6 +46,7 @@
 #include <Stepper.h>
 
 #define BUFFERSIZE 350
+#define CS_PIN 8
 
 //HTTP responses
 const char FOCUS_RESPONSE[] PROGMEM = "HTTP/1.0 200 OK\r\nContent-Type: application/json\r\nPragma: no-cache\r\n\r\n{\"uptime\":\"$D$D:$D$D:$D$D\",\"speed\":$D,\"temperature\":null,\"temperatureCompensationOn\":false,\"backlashSteps\":$D,\"absolutePosition\":$D,\"maxPosition\":$D,\"minPosition\":$D,\"gearBoxMultiplier\":$D}";
@@ -92,14 +93,17 @@ Stepper myStepper(STEPS_PER_REVOLUTION, 6, 7);
  */
 void setup () {
   Serial.begin(9600);
+  Serial.println("\n[getStaticIP]");
   currentPosition = DEFAULT_ABS_POSN;
   currentSpeed = MAX_SPEED;
   backlashSteps = DEFAULT_BACKLASHSTEPS;
-  if (ether.begin(sizeof Ethernet::buffer, mymac) == 0) {
+  if (ether.begin(sizeof Ethernet::buffer, mymac, CS_PIN) == 0) {
     Serial.println(F("Failed to access Ethernet controller"));
   }
+  Serial.println("\n[static setup]");  
   ether.staticSetup(myip);
   myStepper.setSpeed(currentSpeed);
+  Serial.println("\n[gotIP]");  
 }
 
 /**
@@ -198,12 +202,12 @@ static void moveMotor(int steps) {
   }
   //now apply backlash strategy
   if (ALWAYS_APPROACH_CCW_BACKLASH_COMPENSATION) {
-    if (steps < 0) {
+    if (steps > 0) {
       Serial.println("Going CW then back CCW by backlash ammount");
       //CW motion request so we need to go further than requested then back
       myStepper.setSpeed(MAX_SPEED);
-      myStepper.step(backlashSteps * GEARBOX_MULTIPLIER);    //go CW backlash
-      myStepper.step(backlashSteps * -1 * GEARBOX_MULTIPLIER); //now go back CCW to where we came from;
+      myStepper.step(backlashSteps * -1 * GEARBOX_MULTIPLIER);    //go CW backlash
+      myStepper.step(backlashSteps * GEARBOX_MULTIPLIER); //now go back CCW to where we came from;
       myStepper.setSpeed(currentSpeed);
     }
   } else {
