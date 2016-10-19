@@ -206,8 +206,8 @@ static void moveMotor(int steps) {
       Serial.println("Going CW then back CCW by backlash ammount");
       //CW motion request so we need to go further than requested then back
       myStepper.setSpeed(MAX_SPEED);
-      myStepper.step(backlashSteps * -1 * GEARBOX_MULTIPLIER);    //go CW backlash
-      myStepper.step(backlashSteps * GEARBOX_MULTIPLIER); //now go back CCW to where we came from;
+      myStepper.step(backlashSteps * GEARBOX_MULTIPLIER);    //go CW backlash
+      myStepper.step(backlashSteps * -1 * GEARBOX_MULTIPLIER); //now go back CCW to where we came from;
       myStepper.setSpeed(currentSpeed);
     }
   } else {
