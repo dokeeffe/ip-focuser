@@ -70,7 +70,7 @@ void ISSnoopDevice (XMLEle *root)
 
 IpFocus::IpFocus()
 {
-    SetFocuserCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE); //TODO: add FOCUSE R_HAS_VARIABLE_SPEED. the http interface supports it
+    SetFocuserCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE);
     setFocuserConnection(CONNECTION_TCP);
 }
 
@@ -88,17 +88,20 @@ bool IpFocus::initProperties()
 {
     INDI::Focuser::initProperties();
 
-    //IUFillText(&FocuserEndpointT[0], "API_ENDPOINT", "API Endpoint", "http://192.168.1.203/focuser");
-    //IUFillTextVector(&FocuserEndpointTP, FocuserEndpointT, 1, getDeviceName(), "FOCUSER_API_ENDPOINT", "Focuser", OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
-
     tcpConnection->setDefaultHost("192.168.1.203");
-    tcpConnection->setDefaultPort(80);
+    tcpConnection->setDefaultPort(8080);
 
     IUFillText(&AlwaysApproachDirection[0], "ALWAYS_APPROACH_DIR", "Always approach CW/CCW/blank", "CCW");
     IUFillTextVector(&AlwaysApproachDirectionP, AlwaysApproachDirection, 1, getDeviceName(), "BACKLASH_APPROACH_SETTINGS", "Backlash Direction", OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
 
     IUFillText(&BacklashSteps[0],"BACKLASH_STEPS","Backlash steps","300");
     IUFillTextVector(&BacklashStepsP,BacklashSteps,1,getDeviceName(),"BACKLASH_STEPS_SETTINGS","Backlash Steps",OPTIONS_TAB,IP_RW,60,IPS_IDLE);
+
+    /* props to reboot the focuser device if connection faile. This is easier than debugging strange arduino network issues  */
+    IUFillText(&PowerOffEndpointT[0], "POWEROFF_ENDPOINT", "Power Off URL", "http://192.168.2.225:8080/power/focuser/off");
+    IUFillTextVector(&PowerOffEndpointP, PowerOffEndpointT, 1, getDeviceName(), "POWEROFF_ENDPOINT", "Power Off", OPTIONS_TAB, IP_RW, 5, IPS_IDLE);
+    IUFillText(&PowerOnEndpointT[0], "POWERON_ENDPOINT", "Power On URL", "http://192.168.2.225:8080/power/focuser/on");
+    IUFillTextVector(&PowerOnEndpointP, PowerOnEndpointT, 1, getDeviceName(), "POWERON_ENDPOINT", "Power On", OPTIONS_TAB, IP_RW, 5, IPS_IDLE);
 
     /* Relative and absolute movement settings which are not set on connect*/
     FocusRelPosN[0].min = 0.;
@@ -120,6 +123,8 @@ bool IpFocus::updateProperties()
     {
         defineText(&BacklashStepsP);
         defineText(&AlwaysApproachDirectionP);
+        defineText(&PowerOffEndpointP);
+        defineText(&PowerOnEndpointP);
     }
     else
     {
@@ -131,11 +136,11 @@ bool IpFocus::updateProperties()
 }
 
 /**
- * Connect and set position values from focuser response.
+ * Connect and set position values from focuser device response.
 **/
 bool IpFocus::Handshake()
 {
-    APIEndPoint = std::string("http://") + std::string(tcpConnection->host()) + std::string("/focuser");
+    APIEndPoint = std::string("http://") + std::string(tcpConnection->host()) + std::string(":8080") + std::string("/focuser"); //FIXME: for some reason tcpConnection->port() returns 0. So hard code 8080 for now.
 
     CURL *curl;
     CURLcode res;
@@ -225,8 +230,7 @@ bool IpFocus::ISNewText (const char *dev, const char *name, char *texts[], char 
 
 IPState IpFocus::MoveFocuser(FocusDirection dir, int speed, uint16_t duration)
 {
-    //TODO: calc and delegate to MoveAbsFocuser
-    IDLog("RELMOVE speed: %i\n", speed);
+    IDLog("REL-MOVE Speed: %i\n", speed);
     return IPS_OK;
 
 }
@@ -234,10 +238,6 @@ IPState IpFocus::MoveFocuser(FocusDirection dir, int speed, uint16_t duration)
 IPState IpFocus::MoveAbsFocuser(uint32_t targetTicks)
 {
     DEBUGF(INDI::Logger::DBG_SESSION, "Focuser is moving to requested position %ld", targetTicks);
-
-    // Limit to +/- 10 from initTicks
-    //WTF? ticks = initTicks + (targetTicks - mid) / 5000.0;
-
     DEBUGF(INDI::Logger::DBG_DEBUG, "Current Ticks: %.f Target Ticks: %ld", FocusAbsPosN[0].value, targetTicks);
 
     //Now create HTTP GET to move focuser
@@ -263,15 +263,47 @@ IPState IpFocus::MoveAbsFocuser(uint32_t targetTicks)
         if(res != CURLE_OK)
         {
             DEBUGF(INDI::Logger::DBG_ERROR, "COMMS to focuser failed.:%s",curl_easy_strerror(res));
+            PowerCycle();
             return IPS_ALERT;
         }
         curl_easy_cleanup(curl);
     }
 
-    FocusAbsPosN[0].value = targetTicks; //TODO: Parse the json and grab the real value returned from the arduino device    
+    FocusAbsPosN[0].value = targetTicks; //IMPROVEMENT: Parse the json and grab the real value returned from the arduino device    
 
     return IPS_OK;
 
+}
+
+/**
+ * Power cycle the device if possible. This is a workaround for some instability of the focuser device (some wierd arduino bug)
+**/
+void IpFocus::PowerCycle() {
+    DEBUG(INDI::Logger::DBG_SESSION, "***** POWER CYCLE ******");
+    SendGetRequest(PowerOffEndpointT[0].text);
+    sleep(3);
+    SendGetRequest(PowerOnEndpointT[0].text);
+    sleep(12);
+}
+
+bool IpFocus::SendGetRequest(const char *path) {
+    CURL *curl;
+    CURLcode res;
+    curl = curl_easy_init();
+    if(curl)
+    {
+        DEBUGF(INDI::Logger::DBG_DEBUG, "Performing request %s", path);
+        curl_easy_setopt(curl, CURLOPT_URL, path);
+        curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10L);
+        res = curl_easy_perform(curl);
+        if(res != CURLE_OK)
+        {
+            DEBUGF(INDI::Logger::DBG_ERROR, "Comms failed.:%s",curl_easy_strerror(res));
+            return false;
+        }
+        curl_easy_cleanup(curl);
+    }
+    return true;
 }
 
 IPState IpFocus::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
@@ -289,6 +321,8 @@ bool IpFocus::saveConfigItems(FILE *fp)
     INDI::Focuser::saveConfigItems(fp);
 
     IUSaveConfigText(fp, &AlwaysApproachDirectionP);
+    IUSaveConfigText(fp, &PowerOffEndpointP);
+    IUSaveConfigText(fp, &PowerOnEndpointP);
 
     return true;
 }

@@ -37,11 +37,17 @@ protected:
 private:
     ITextVectorProperty BacklashStepsP;
     ITextVectorProperty AlwaysApproachDirectionP;
-
+    ITextVectorProperty PowerOffEndpointP;
+    ITextVectorProperty PowerOnEndpointP;
+    
     IText BacklashSteps[1];
     IText AlwaysApproachDirection[1];
+    IText PowerOffEndpointT[1];
+    IText PowerOnEndpointT[1];
 
-    std::string APIEndPoint;
+    bool SendGetRequest(const char *path);
+    void PowerCycle();
+    std::string APIEndPoint;    
 };
 
 #endif
