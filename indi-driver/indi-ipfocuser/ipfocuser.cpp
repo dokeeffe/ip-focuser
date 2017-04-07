@@ -89,7 +89,7 @@ bool IpFocus::initProperties()
     INDI::Focuser::initProperties();
 
     tcpConnection->setDefaultHost("192.168.1.203");
-    tcpConnection->setDefaultPort(8080);
+    tcpConnection->setDefaultPort(80);
 
     IUFillText(&AlwaysApproachDirection[0], "ALWAYS_APPROACH_DIR", "Always approach CW/CCW/blank", "CCW");
     IUFillTextVector(&AlwaysApproachDirectionP, AlwaysApproachDirection, 1, getDeviceName(), "BACKLASH_APPROACH_SETTINGS", "Backlash Direction", OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
@@ -140,7 +140,7 @@ bool IpFocus::updateProperties()
 **/
 bool IpFocus::Handshake()
 {
-    APIEndPoint = std::string("http://") + std::string(tcpConnection->host()) + std::string(":8080") + std::string("/focuser"); //FIXME: for some reason tcpConnection->port() returns 0. So hard code 8080 for now.
+    APIEndPoint = std::string("http://") + std::string(tcpConnection->host()) + std::string(":80") + std::string("/focuser"); //FIXME: for some reason tcpConnection->port() returns 0. So hard code 80 for now.
 
     CURL *curl;
     CURLcode res;
