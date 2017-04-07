@@ -240,38 +240,23 @@ IPState IpFocus::MoveAbsFocuser(uint32_t targetTicks)
     DEBUGF(INDI::Logger::DBG_SESSION, "Focuser is moving to requested position %ld", targetTicks);
     DEBUGF(INDI::Logger::DBG_DEBUG, "Current Ticks: %.f Target Ticks: %ld", FocusAbsPosN[0].value, targetTicks);
 
-    //Now create HTTP GET to move focuser
-    CURL *curl;
-    CURLcode res;
-    curl = curl_easy_init();
-    if(curl)
-    {
-        //holy crap is it really this hard to build a string in c++
-        std::string queryStringPosn = "?absolutePosition=";
-        std::string queryStringBacklash = "&amp;backlashSteps=";
-        std::string queryStringApproachDir = "&amp;alwaysApproach=";
-        auto str = APIEndPoint + queryStringPosn + std::to_string(targetTicks) + queryStringBacklash + BacklashSteps[0].text + queryStringApproachDir + AlwaysApproachDirection[0].text;
-        char* getRequestUrl = new char[str.size() + 1];  // +1 char for '\0' terminator
-        strcpy(getRequestUrl, str.c_str());
-        //end holy crap!!!!
+    // //holy crap is it really this hard to build a string in c++
+    std::string queryStringPosn = "?absolutePosition=";
+    std::string queryStringBacklash = "&amp;backlashSteps=";
+    std::string queryStringApproachDir = "&amp;alwaysApproach=";
+    auto str = APIEndPoint + queryStringPosn + std::to_string(targetTicks) + queryStringBacklash + BacklashSteps[0].text + queryStringApproachDir + AlwaysApproachDirection[0].text;
+    char* getRequestUrl = new char[str.size() + 1];  // +1 char for '\0' terminator
+    strcpy(getRequestUrl, str.c_str());
+    //end holy crap!!!!
 
-        DEBUGF(INDI::Logger::DBG_DEBUG, "Performing request %s", getRequestUrl);
-        curl_easy_setopt(curl, CURLOPT_URL, getRequestUrl);
-        curl_easy_setopt(curl, CURLOPT_TIMEOUT, 45L); //45sec should be enough
-        res = curl_easy_perform(curl);
-        /* Check for errors */
-        if(res != CURLE_OK)
-        {
-            DEBUGF(INDI::Logger::DBG_ERROR, "COMMS to focuser failed.:%s",curl_easy_strerror(res));
-            PowerCycle();
-            return IPS_ALERT;
-        }
-        curl_easy_cleanup(curl);
+    bool result = SendGetRequest(getRequestUrl);
+    if (result == false) {
+       PowerCycle();
+       result = SendGetRequest(getRequestUrl);
     }
-
     FocusAbsPosN[0].value = targetTicks; //IMPROVEMENT: Parse the json and grab the real value returned from the arduino device    
 
-    return IPS_OK;
+    return result ? IPS_OK : IPS_ALERT;
 
 }
 
@@ -284,6 +269,7 @@ void IpFocus::PowerCycle() {
     sleep(3);
     SendGetRequest(PowerOnEndpointT[0].text);
     sleep(12);
+    DEBUG(INDI::Logger::DBG_SESSION, "*** POWER CYCLE FINSIHED***");
 }
 
 bool IpFocus::SendGetRequest(const char *path) {
