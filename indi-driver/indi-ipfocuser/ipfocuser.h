@@ -26,6 +26,7 @@ public:
     bool Handshake();
 
     virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
+    virtual bool Connect();
 
     virtual IPState MoveFocuser(FocusDirection dir, int speed, uint16_t duration);
     virtual IPState MoveAbsFocuser(uint32_t ticks);

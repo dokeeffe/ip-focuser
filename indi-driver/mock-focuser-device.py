@@ -7,6 +7,7 @@ def index():
     absPos = request.query.absolutePosition
     backlashSteps = request.query.backlashSteps
     alwaysApproach = request.query.alwaysApproach
+    absPos = absPos if absPos else 1000
     print(absPos)
     print(backlashSteps)
     print(alwaysApproach)

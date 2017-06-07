@@ -135,13 +135,17 @@ bool IpFocus::updateProperties()
     return true;
 }
 
+bool IpFocus::Connect() {
+  return Handshake();
+}
 /**
  * Connect and set position values from focuser device response.
 **/
 bool IpFocus::Handshake()
 {
-    APIEndPoint = std::string("http://") + std::string(tcpConnection->host()) + std::string(":80") + std::string("/focuser"); //FIXME: for some reason tcpConnection->port() returns 0. So hard code 80 for now.
-
+    DEBUG(INDI::Logger::DBG_SESSION, "***** connecting ******");
+    APIEndPoint = std::string("http://") + std::string(tcpConnection->host()) + std::string(":8080") + std::string("/focuser"); //FIXME: for some reason std::to_string(tcpConnection->getPortFD()) returns 127. So hard code 80 for now.
+    DEBUGF(INDI::Logger::DBG_SESSION, "API endpoint %s", APIEndPoint.c_str());
     CURL *curl;
     CURLcode res;
     std::string readBuffer;
@@ -153,6 +157,7 @@ bool IpFocus::Handshake()
         curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10L); //10 sec timeout
         curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
         curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
+        DEBUG(INDI::Logger::DBG_DEBUG, "***** performing curl ******");
         res = curl_easy_perform(curl);
         /* Check for errors */
         if(res != CURLE_OK)
@@ -169,16 +174,19 @@ bool IpFocus::Handshake()
         char *source = srcBuffer;
         // do not forget terminate source string with 0
         char *endptr;
+        DEBUG(INDI::Logger::DBG_DEBUG, "***** completed curl ******");
+        DEBUGF(INDI::Logger::DBG_DEBUG, "Focuser response %s", readBuffer.c_str());
         JsonValue value;
         JsonAllocator allocator;
         int status = jsonParse(source, &endptr, &value, allocator);
+        //DEBUGF(INDI::Logger::DBG_DEBUG, "Focuser response %s", readBuffer.c_str());
         if (status != JSON_OK)
         {
             DEBUGF(INDI::Logger::DBG_ERROR, "%s at %zd", jsonStrError(status), endptr - source);
             DEBUGF(INDI::Logger::DBG_DEBUG, "%s", readBuffer.c_str());
             return false;
         }
-        DEBUGF(INDI::Logger::DBG_DEBUG, "Focuser response %s", readBuffer.c_str());
+
         JsonIterator it;
         for (it = begin(value); it!= end(value); ++it)
         {
