@@ -144,7 +144,7 @@ bool IpFocus::Connect() {
 bool IpFocus::Handshake()
 {
     DEBUG(INDI::Logger::DBG_SESSION, "***** connecting ******");
-    APIEndPoint = std::string("http://") + std::string(tcpConnection->host()) + std::string(":8080") + std::string("/focuser"); //FIXME: for some reason std::to_string(tcpConnection->getPortFD()) returns 127. So hard code 80 for now.
+    APIEndPoint = std::string("http://") + std::string(tcpConnection->host()) + std::string(":80") + std::string("/focuser"); //FIXME: for some reason std::to_string(tcpConnection->getPortFD()) returns 127. So hard code 80 for now.
     DEBUGF(INDI::Logger::DBG_SESSION, "API endpoint %s", APIEndPoint.c_str());
     CURL *curl;
     CURLcode res;
@@ -288,7 +288,7 @@ bool IpFocus::SendGetRequest(const char *path) {
     {
         DEBUGF(INDI::Logger::DBG_DEBUG, "Performing request %s", path);
         curl_easy_setopt(curl, CURLOPT_URL, path);
-        curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10L);
+        curl_easy_setopt(curl, CURLOPT_TIMEOUT, 40L);
         res = curl_easy_perform(curl);
         if(res != CURLE_OK)
         {
