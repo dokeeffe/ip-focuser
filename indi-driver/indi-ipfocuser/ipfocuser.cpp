@@ -70,8 +70,8 @@ void ISSnoopDevice (XMLEle *root)
 
 IpFocus::IpFocus()
 {
-    SetFocuserCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE);
-    setFocuserConnection(CONNECTION_TCP);
+    SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE);
+    setConnection(CONNECTION_TCP);
 }
 
 IpFocus::~IpFocus()
