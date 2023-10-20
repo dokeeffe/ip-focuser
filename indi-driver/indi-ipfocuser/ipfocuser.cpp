@@ -121,10 +121,10 @@ bool IpFocus::updateProperties()
 
     if (isConnected())
     {
-        defineText(&BacklashStepsP);
-        defineText(&AlwaysApproachDirectionP);
-        defineText(&PowerOffEndpointP);
-        defineText(&PowerOnEndpointP);
+        defineProperty(&BacklashStepsP);
+        defineProperty(&AlwaysApproachDirectionP);
+        defineProperty(&PowerOffEndpointP);
+        defineProperty(&PowerOnEndpointP);
     }
     else
     {
